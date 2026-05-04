@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: kubernetes-agent
   title: Kubernetes Agent
-  description: Deploy a Kubernetes Agent with configurable LLM backends for diagnostics, analysis, and remediation
+  description: Deploy a Kubernetes Agent for Argo Rollouts with configurable LLM backends for diagnostics, analysis, and remediation
   tags:
     - recommended
     - java
