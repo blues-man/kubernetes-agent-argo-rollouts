@@ -10,7 +10,7 @@ metadata:
     - ai
     - kubernetes
 spec:
-  owner: platform-engineering
+  owner: tssc
   type: service
 
   parameters:
