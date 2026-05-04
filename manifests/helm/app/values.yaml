@@ -1,0 +1,50 @@
+namespace:
+  enabled: true
+  name: ${{values.namespace}}
+
+replicaCount: 1
+
+image:
+  repository: quay.io/kevindubois/kubernetes-agent
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Decision LLM (used by DiagnosticAgent and AnalysisAgent)
+decisionLlm:
+  model: "qwen3-14b"
+  baseUrl: "https://litellm-prod.apps.maas.redhatworkshops.io/v1"
+  apiKey: ""
+
+# Remediation LLM (used by RemediationAgent for code fixes)
+remediationLlm:
+  model: "Qwen3.6-35B-A3B"
+  baseUrl: "https://litellm-litemaas.apps.prod.rhoai.rh-aiservices-bu.com/v1"
+  apiKey: ""
+
+# Gemini configuration
+gemini:
+  model: "gemini-2.5-flash"
+
+# Quarkus profile
+quarkusProfile: "prod,openai"
+
+# GitHub Token (for creating PRs and issues)
+githubToken: ""
+
+# Git Configuration
+git:
+  username: "kubernetes-agent"
+  email: "kubernetes-agent@csanchez.org"
+
+# Resource requests/limits
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"

@@ -1,0 +1,205 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: kubernetes-agent
+  title: Kubernetes Agent
+  description: Deploy a Kubernetes Agent with configurable LLM backends for diagnostics, analysis, and remediation
+  tags:
+    - recommended
+    - java
+    - ai
+    - kubernetes
+spec:
+  owner: platform-engineering
+  type: service
+
+  parameters:
+    - title: Application Configuration
+      required:
+        - component_id
+        - namespace
+      properties:
+        component_id:
+          title: Component Name
+          type: string
+          description: Unique name for this kubernetes-agent instance
+          maxLength: 24
+          pattern: '^([a-z0-9-])+$'
+          ui:field: EntityNamePicker
+        description:
+          title: Description
+          type: string
+          description: Purpose of this kubernetes-agent deployment
+          default: Kubernetes Agent for AI-powered cluster diagnostics and remediation
+        namespace:
+          title: Target Namespace
+          type: string
+          description: Kubernetes namespace where the agent will be deployed
+          default: openshift-gitops
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the component
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds:
+              - Group
+
+    - title: Decision LLM Configuration
+      description: The Decision LLM is used by the DiagnosticAgent and AnalysisAgent
+      required:
+        - decision_llm
+        - decision_llm_api_key
+      properties:
+        decision_llm:
+          title: Decision LLM Model
+          type: string
+          description: Select the LLM model for diagnostics and analysis decisions
+          enum:
+            - qwen3-14b
+            - llama3.1-8b
+            - llama3.3-70b
+            - deepseek-r1-14b
+            - mistral-small3.1
+            - granite-3.3-8b
+            - gpt-4o
+            - gemini-2.5-flash
+          enumNames:
+            - Qwen 3 14B (Default)
+            - LLaMA 3.1 8B
+            - LLaMA 3.3 70B
+            - DeepSeek R1 14B
+            - Mistral Small 3.1
+            - Granite 3.3 8B
+            - GPT-4o (OpenAI)
+            - Gemini 2.5 Flash (Google)
+          default: qwen3-14b
+        decision_llm_api_key:
+          title: Decision LLM API Key
+          type: string
+          description: API key for the Decision LLM service
+          ui:widget: password
+
+    - title: Remediation LLM Configuration
+      description: The Remediation LLM is used by the RemediationAgent for generating code fixes
+      required:
+        - remediation_llm
+        - remediation_llm_api_key
+      properties:
+        remediation_llm:
+          title: Remediation LLM Model
+          type: string
+          description: Select the LLM model for code remediation (typically a more capable model)
+          enum:
+            - Qwen3.6-35B-A3B
+            - qwen3-14b
+            - llama3.3-70b
+            - deepseek-r1-14b
+            - gpt-4o
+            - gemini-2.5-flash
+          enumNames:
+            - Qwen 3.6 35B-A3B (Default)
+            - Qwen 3 14B
+            - LLaMA 3.3 70B
+            - DeepSeek R1 14B
+            - GPT-4o (OpenAI)
+            - Gemini 2.5 Flash (Google)
+          default: Qwen3.6-35B-A3B
+        remediation_llm_api_key:
+          title: Remediation LLM API Key
+          type: string
+          description: API key for the Remediation LLM service
+          ui:widget: password
+
+    - title: Repository Configuration
+      required:
+        - repo
+      properties:
+        repo:
+          title: Repository Location
+          type: object
+          properties:
+            host:
+              title: Repo Host
+              type: string
+              default: github.com
+            owner:
+              title: Repository Owner
+              type: string
+              description: GitHub organization or user
+            name:
+              title: Repository Name
+              type: string
+              description: Name of the GitOps repository to create
+
+  steps:
+    - id: template
+      name: Fetch Skeleton + Helm Chart
+      action: fetch:template
+      input:
+        url: ./skeleton
+        copyWithoutTemplating:
+          - .github/**
+        values:
+          component_id: ${{ parameters.component_id }}
+          description: ${{ parameters.description }}
+          namespace: ${{ parameters.namespace }}
+          owner: ${{ parameters.owner }}
+          decision_llm: ${{ parameters.decision_llm }}
+          decision_llm_api_key: ${{ parameters.decision_llm_api_key }}
+          remediation_llm: ${{ parameters.remediation_llm }}
+          remediation_llm_api_key: ${{ parameters.remediation_llm_api_key }}
+          destination: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.repo.name }}.git
+
+    - id: manifest
+      name: Fetch Helm Chart and ArgoCD Manifests
+      action: fetch:template
+      input:
+        url: ./manifests
+        values:
+          component_id: ${{ parameters.component_id }}
+          namespace: ${{ parameters.namespace }}
+          decision_llm: ${{ parameters.decision_llm }}
+          decision_llm_api_key: ${{ parameters.decision_llm_api_key }}
+          remediation_llm: ${{ parameters.remediation_llm }}
+          remediation_llm_api_key: ${{ parameters.remediation_llm_api_key }}
+          github_token: ""
+          destination: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.repo.name }}.git
+        targetPath: ./manifests
+
+    - id: publish
+      name: Publish Repository
+      action: publish:github
+      input:
+        allowedHosts:
+          - ${{ parameters.repo.host }}
+        description: GitOps repository for ${{ parameters.component_id }}
+        repoUrl: ${{ parameters.repo.host }}?owner=${{ parameters.repo.owner }}&repo=${{ parameters.repo.name }}
+        defaultBranch: main
+        protectDefaultBranch: false
+        repoVisibility: public
+
+    - id: register
+      name: Register Component
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: create-argocd-resources
+      name: Create ArgoCD Resources
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.component_id }}
+        argoInstance: main
+        namespace: openshift-gitops
+        repoUrl: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.repo.name }}.git
+        path: manifests/helm/app
+
+  output:
+    links:
+      - title: Source Code Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open Component in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

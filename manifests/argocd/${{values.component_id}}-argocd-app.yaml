@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${{ values.component_id }}
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: ${{ values.destination }}
+    targetRevision: HEAD
+    path: ./manifests/helm/app
+    helm:
+      parameters:
+        - name: namespace.name
+          value: ${{ values.namespace }}
+        - name: decisionLlm.model
+          value: ${{ values.decision_llm }}
+        - name: decisionLlm.apiKey
+          value: ${{ values.decision_llm_api_key }}
+        - name: remediationLlm.model
+          value: ${{ values.remediation_llm }}
+        - name: remediationLlm.apiKey
+          value: ${{ values.remediation_llm_api_key }}
+        - name: githubToken
+          value: ${{ values.github_token }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${{ values.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: -1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 2m
