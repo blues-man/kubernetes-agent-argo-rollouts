@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: kubernetes-agent
   title: Kubernetes Agent
-  description: Deploy a Kubernetes Agent for Argo Rollouts with configurable LLM backends for diagnostics, analysis, and remediation
+  description: Deploy a Kubernetes Agent with configurable LLM backends for diagnostics, analysis, and remediation
   tags:
     - recommended
     - java
@@ -26,7 +26,6 @@ spec:
           maxLength: 24
           pattern: '^([a-z0-9-])+$'
           ui:field: EntityNamePicker
-          default: kubernetes-agent
         description:
           title: Description
           type: string
@@ -123,15 +122,15 @@ spec:
             host:
               title: Repo Host
               type: string
-              default: github.com
+              description: Your GitLab host
+              default: gitlab-gitlab.apps.cluster-892bb.dynamic.redhatworkshops.io
             owner:
-              title: Repository Owner
+              title: Repo Owner
               type: string
-              description: GitHub organization or user
-            name:
-              title: Repository Name
-              type: string
-              description: Name of the GitOps repository to create
+              description: Your GitLab organization/group
+              default: development
+              enum:
+                - development
 
   steps:
     - id: template
@@ -139,8 +138,6 @@ spec:
       action: fetch:template
       input:
         url: ./skeleton
-        copyWithoutTemplating:
-          - .github/**
         values:
           component_id: ${{ parameters.component_id }}
           description: ${{ parameters.description }}
@@ -150,7 +147,7 @@ spec:
           decision_llm_api_key: ${{ parameters.decision_llm_api_key }}
           remediation_llm: ${{ parameters.remediation_llm }}
           remediation_llm_api_key: ${{ parameters.remediation_llm_api_key }}
-          destination: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.repo.name }}.git
+          destination: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.component_id }}.git
 
     - id: manifest
       name: Fetch Helm Chart and ArgoCD Manifests
@@ -165,19 +162,14 @@ spec:
           remediation_llm: ${{ parameters.remediation_llm }}
           remediation_llm_api_key: ${{ parameters.remediation_llm_api_key }}
           github_token: ""
-          destination: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.repo.name }}.git
+          destination: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.component_id }}.git
         targetPath: ./manifests
 
     - id: publish
-      name: Publish Repository
-      action: publish:github
+      name: Publish
+      action: publish:gitlab
       input:
-        allowedHosts:
-          - ${{ parameters.repo.host }}
-        description: GitOps repository for ${{ parameters.component_id }}
-        repoUrl: ${{ parameters.repo.host }}?owner=${{ parameters.repo.owner }}&repo=${{ parameters.repo.name }}
-        defaultBranch: main
-        protectDefaultBranch: false
+        repoUrl: "${{ parameters.repo.host }}?owner=${{ parameters.repo.owner }}&repo=${{ parameters.component_id }}"
         repoVisibility: public
 
     - id: register
@@ -194,7 +186,7 @@ spec:
         appName: ${{ parameters.component_id }}
         argoInstance: main
         namespace: openshift-gitops
-        repoUrl: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.repo.name }}.git
+        repoUrl: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.component_id }}.git
         path: manifests/helm/app
 
   output:
