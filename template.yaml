@@ -186,7 +186,7 @@ spec:
       action: argocd:create-resources
       input:
         appName: ${{ parameters.component_id }}
-        argoInstance: main
+        argoInstance: default
         namespace: openshift-gitops
         repoUrl: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.component_id }}.git
         path: manifests/helm/app
