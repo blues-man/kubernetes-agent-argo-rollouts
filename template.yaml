@@ -18,6 +18,7 @@ spec:
       required:
         - component_id
         - namespace
+        - owner
       properties:
         component_id:
           title: Component Name
@@ -25,8 +26,8 @@ spec:
           description: Unique name for this kubernetes-agent instance
           maxLength: 24
           pattern: '^([a-z0-9-])+$'
-          ui:field: EntityNamePicker
           default: kubernetes-agent
+          ui:field: EntityNamePicker
         description:
           title: Description
           type: string
