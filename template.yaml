@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: kubernetes-agent
   title: Kubernetes Agent
-  description: Deploy a Kubernetes Agent with configurable LLM backends for diagnostics, analysis, and remediation
+  description: Deploy a Kubernetes Agent for Argo Rollouts with configurable LLM backends for diagnostics, analysis, and remediation
   tags:
     - recommended
     - java
@@ -26,6 +26,7 @@ spec:
           maxLength: 24
           pattern: '^([a-z0-9-])+$'
           ui:field: EntityNamePicker
+          default: kubernetes-agent
         description:
           title: Description
           type: string
@@ -78,7 +79,7 @@ spec:
           title: Decision LLM API Key
           type: string
           description: API key for the Decision LLM service
-          ui:widget: password
+          ui:field: Secret
 
     - title: Remediation LLM Configuration
       description: The Remediation LLM is used by the RemediationAgent for generating code fixes
@@ -109,7 +110,7 @@ spec:
           title: Remediation LLM API Key
           type: string
           description: API key for the Remediation LLM service
-          ui:widget: password
+          ui:field: Secret
 
     - title: Repository Configuration
       required:
