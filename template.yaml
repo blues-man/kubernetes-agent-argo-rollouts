@@ -187,7 +187,7 @@ spec:
       input:
         appName: ${{ parameters.component_id }}-bootstrap
         argoInstance: default
-        namespace: openshift-gitops
+        namespace: ${{ parameters.namespace }}
         repoUrl: https://${{ parameters.repo.host }}/${{ parameters.repo.owner }}/${{ parameters.component_id }}.git
         path: manifests/argocd/
 
