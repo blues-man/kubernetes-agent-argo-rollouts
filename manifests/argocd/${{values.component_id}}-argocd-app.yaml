@@ -18,13 +18,13 @@ spec:
         - name: decisionLlm.model
           value: ${{ values.decision_llm }}
         - name: decisionLlm.apiKey
-          value: ${{ values.decision_llm_api_key }}
+          value: "${{ values.decision_llm_api_key }}"
         - name: remediationLlm.model
           value: ${{ values.remediation_llm }}
         - name: remediationLlm.apiKey
-          value: ${{ values.remediation_llm_api_key }}
+          value: "${{ values.remediation_llm_api_key }}"
         - name: githubToken
-          value: ${{ values.github_token }}
+          value: "${{ values.github_token }}"
   destination:
     server: https://kubernetes.default.svc
     namespace: ${{ values.namespace }}
